@@ -1,0 +1,18 @@
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+# 使用 select 顯式指定規則，比 extend-select 更推薦
+select = [
+    "E",    # pycodestyle (風格)
+    "F",    # Pyflakes (邏輯/Bug)
+    "I",    # isort (排序匯入)
+    "UP",   # pyupgrade (現代化語法)
+    "B",    # flake8-bugbear (深層 Bug)
+    "SIM",  # flake8-simplify (簡化代碼)
+]
+# 忽略特定的規則 (例如某條 PEP 8 跟你專案衝突)
+ignore = []
+
+[tool.ruff.lint.pyupgrade]
+keep-runtime-typing = true
