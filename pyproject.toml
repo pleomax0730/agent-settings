@@ -12,7 +12,7 @@ select = [
     "SIM",  # flake8-simplify (簡化代碼)
 ]
 # 忽略特定的規則 (例如某條 PEP 8 跟你專案衝突)
-ignore = []
+ignore = ["E501"] # Line too long
 
 [tool.ruff.lint.pyupgrade]
 keep-runtime-typing = true
