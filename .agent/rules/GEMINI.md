@@ -13,7 +13,7 @@ description: dummy rule description
 - **Command:** `uv run python`
 - **PowerShell Command Pattern:**
   ```powershell
-  $env:PYTHONUTF8=1; $p = Start-Process -FilePath "uv" -ArgumentList "run python <script_name.py>" -PassThru -RedirectStandardOutput "logs/<script_name>.log" -RedirectStandardError "logs/<script_name>.err.log" -WindowStyle Hidden; Write-Host "Script started with PID: $($p.Id)"
+  $env:PYTHONUTF8=1; $p = Start-Process -FilePath "uv" -ArgumentList "run python -u <script_name.py>" -PassThru -RedirectStandardOutput "logs/<script_name>.log" -RedirectStandardError "logs/<script_name>.err.log" -WindowStyle Hidden; Write-Host "Script started with PID: $($p.Id)"
   ```
 
 ### 2. FastAPI Server
