@@ -2,7 +2,7 @@
 
 ## Core Standards
 
-- **Engineering Rules:** [GEMINI.md](https://raw.githubusercontent.com/pleomax0730/agent-settings/refs/heads/main/.agent/rules/GEMINI.md)
+- **Engineering Rules:** [engineering-rules.md](https://raw.githubusercontent.com/pleomax0730/agent-settings/refs/heads/main/.agent/rules/GEMINI.md)
 - **Python Formatting:** [format-python-code.md](https://raw.githubusercontent.com/pleomax0730/agent-settings/refs/heads/main/.agent/workflows/format-python-code.md)
 - **Commit Messages:** [generate-commit-msg.md](https://raw.githubusercontent.com/pleomax0730/agent-settings/refs/heads/main/.agent/workflows/generate-commit-msg.md)
 
