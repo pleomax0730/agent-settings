@@ -10,7 +10,7 @@ This workflow delegates code writing to Codex while keeping the AI Assistant in 
 
 1. **Information Gathering**
    - Review the requested feature or bug fix.
-   - **Actively Ask the User**: Ask the user to provide any relevant coding principle files (e.g., `AGENTS.md`), architectural diagrams, or specific constraints before proceeding. Do not assume or hardcode specific filenames.
+   - **Actively Ask the User**: Ask the user to provide any relevant coding principle files (e.g., `AGENTS.md`), architectural diagrams, or specific constraints before proceeding. Do not assume any principles or guidelines without confirmation.
    - Explore the codebase to understand the existing context.
 
 2. **Generate Implementation Plan & Task List**
