@@ -1,18 +1,16 @@
-# Authoritative Specifications
+# Project Context
+
+- **General Understanding:** Please read the `README.md` file in the root directory to gain a general understanding of the project's purpose, domain, and workflow before beginning tasks.
 
 ## Core Standards
 
-- **Engineering Rules:** [engineering-rules](https://raw.githubusercontent.com/pleomax0730/agent-settings/refs/heads/main/.agent/rules/GEMINI.md)
+- **Coding Principles:** [coding-principles](https://raw.githubusercontent.com/pleomax0730/agent-settings/refs/heads/main/.agent/rules/GEMINI.md)
+  - **When to Apply:** Applicable during the coding and planning stages. This covers all architectural design, module slicing, Dependency Injection (DI/Ports & Adapters), testing, and project structural decisions. All code implementations **MUST** strictly adhere to these principles.
 - **Python Formatting:** [format-python-code](https://raw.githubusercontent.com/pleomax0730/agent-settings/refs/heads/main/.agent/workflows/format-python-code.md)
+  - **When to Apply:** Whenever writing, modifying, or refactoring Python code. You **MUST** run this formatting and linting workflow before delivering code or preparing a commit.
 - **Commit Messages:** [generate-commit-msg](https://raw.githubusercontent.com/pleomax0730/agent-settings/refs/heads/main/.agent/workflows/generate-commit-msg.md)
-
-## Enforcement
-
-- **Mandatory Compliance:** Engineering rules, slices, DI/Ports & Adapters, dependency rules, testing, project structure, and any coding requirements **MUST** comply with the Engineering spec.
-- **Strict Formatting:** Python code formatting and linting **MUST** comply with the Formatting workflow.
-- **Conventional Commits:** All commit message generation **MUST** comply with the Commit workflow.
+  - **When to Apply:** When code modifications are finalized and ready to be committed. All commit messages **MUST** be generated using this workflow to ensure compliance with the Conventional Commits standard.
 
 ## Usage Instruction
 
-- Apply these rules **implicitly** to daily development.
 - Ignore these specs for unrelated topics.
