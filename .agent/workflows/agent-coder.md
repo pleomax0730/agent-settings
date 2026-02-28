@@ -18,15 +18,15 @@ This workflow delegates code writing to Codex while keeping the AI Assistant in 
 3. **Execute Phase 1 with Codex**
    - Trigger the initial execution run:
      `codex exec "Read the implementation_plan.md file. Fully execute Phase 1, making any necessary file edits. Update the plan to mark Phase 1 as [x] once complete." --full-auto`
-   - Use `command_status` to monitor the command to completion.
+   - Use `command_status` to monitor the command. **Crucial:** From the initial output snapshot, note down the `session id:` (which is a UUID like `019c...`) so you can resume it later.
 
 4. **Review and Verify**
    - Verify Codex's changes (run `git status`, test commands, or view diffs).
    - Ensure the `implementation_plan.md` was correctly updated.
 
 5. **Resume Codex for Subsequent Phases (Loop)**
-   - To continue with the next phase while maintaining the identical session, run:
-     `codex exec resume --last "Great. Proceed to execute the next open Phase in implementation_plan.md. Mark it as [x] once complete." --full-auto`
+   - To continue with the next phase while maintaining the identical session, run the resume command using the Session ID you captured:
+     `codex exec resume <SESSION_ID> "Great. Proceed to execute the next open Phase in implementation_plan.md. Mark it as [x] once complete." --full-auto`
    - Wait for it to finish and review the changes.
    - Repeat this step until all items in `implementation_plan.md` are finished.
 
