@@ -196,19 +196,3 @@ Early-stage projects won't be fully compliant from day one. Legacy is acceptable
 1. Move routes into a feature slice (no behavior change).
 2. Extract core logic into service and engine modules (add unit tests).
 3. Extract I/O into ports/adapters (add integration tests).
-
-## Appendix: Run/Stop Script Pattern (Windows + PowerShell + uv)
-General Python script (background + logging):
-```powershell
-$env:PYTHONUTF8=1; $p = Start-Process -FilePath "uv" -ArgumentList "run python -u <script.py>" -PassThru -RedirectStandardOutput "logs/<name>.log" -RedirectStandardError "logs/<name>.log" -WindowStyle Hidden; Write-Host "Script started with PID: $($p.Id)"
-```
-
-Web server (FastAPI example, substitute your framework):
-```powershell
-$env:PYTHONUTF8=1; $p = Start-Process -FilePath "uv" -ArgumentList "run fastapi run <entrypoint.py>" -PassThru -RedirectStandardOutput "logs/api.log" -RedirectStandardError "logs/api.log" -WindowStyle Hidden; Write-Host "Server started with PID: $($p.Id)"
-```
-
-Stop:
-```powershell
-taskkill /F /T /PID <PID>
-```
