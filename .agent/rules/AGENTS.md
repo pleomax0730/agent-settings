@@ -5,7 +5,7 @@
 ## Core Standards
 
 - **Coding Principles:** [coding-principles](https://raw.githubusercontent.com/pleomax0730/agent-settings/refs/heads/main/.agent/rules/GEMINI.md)
-  - **When to Apply:** Applicable during the coding and planning stages. This covers all architectural design, module slicing, Dependency Injection (DI/Ports & Adapters), testing, and project structural decisions. All code implementations **MUST** strictly adhere to these principles.
+  - **When to Apply:** Applicable during the planning and coding stages. This covers all architectural design, module slicing, Dependency Injection (DI/Ports & Adapters), testing, and project structural decisions. All code implementations **MUST** strictly adhere to these principles.
 - **Python Formatting:** [format-python-code](https://raw.githubusercontent.com/pleomax0730/agent-settings/refs/heads/main/.agent/workflows/format-python-code.md)
   - **When to Apply:** Whenever writing, modifying, or refactoring Python code. You **MUST** run this formatting and linting workflow before delivering code or preparing a commit.
 - **Commit Messages:** [generate-commit-msg](https://raw.githubusercontent.com/pleomax0730/agent-settings/refs/heads/main/.agent/workflows/generate-commit-msg.md)
