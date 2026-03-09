@@ -31,12 +31,11 @@ This workflow delegates code writing to Codex while keeping the AI Assistant in 
    - Ensure the `implementation_plan.md` was correctly updated.
    - If there are errors or failing tests, feed the error logs back into the next Codex prompt to fix them before proceeding to the next phase.
    - **Persist review output to `/tmp` reliably**:
-     - `codex review` output may not be written by plain `>` in some PTY/tool wrappers. Always capture both stdout and stderr:
-       - `codex review --uncommitted -c model="gpt-5.4" -c model_reasoning_effort="high" > /tmp/review_gpt54_high.txt 2>&1`
-     - Validate files are non-empty before parsing:
+     - Always use `tee` and capture both stdout/stderr (high reasoning only):
+       - `codex review --uncommitted -c model="gpt-5.4" -c model_reasoning_effort="high" 2>&1 | tee /tmp/review_gpt54_high.txt`
+     - Reason: in some PTY/tool wrappers, plain `>` can miss part (or all) of the output stream.
+     - Validate the file is non-empty before parsing:
        - `wc -c /tmp/review_gpt54_high.txt`
-     - If files are still empty, use `tee` as fallback:
-       - `codex review --uncommitted ... 2>&1 | tee /tmp/review.txt`
      - Only read/summarize the `/tmp` files after the command is fully completed.
 
 5. **Resume Codex for Subsequent Phases (Loop)**
