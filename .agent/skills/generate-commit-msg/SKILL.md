@@ -1,4 +1,5 @@
 ---
+name: generate-commit-msg
 description: Generate Conventional Commit messages
 ---
 

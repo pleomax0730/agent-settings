@@ -1,4 +1,5 @@
 ---
+name: format-python-code
 description: Perform modernize types, sorting import and formatting code in Python
 ---
 
