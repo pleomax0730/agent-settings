@@ -1,15 +1,13 @@
 # Project Context
 
-- **General Understanding:** Please read the `README.md` file in the root directory to gain a general understanding of the project's purpose, domain, and workflow before beginning tasks.
+- **General Understanding:** Read the relevant `README.md` before starting work. If the workspace root does not contain one, read the `README.md` of the target project instead.
 
 ## Core Standards
 
-- **Planning / Execution / Review Skill Cycle:** Use the local `.agent` skills as a coordinated workflow when the task benefits from deliberate planning, structured execution, and explicit verification.
-  - **Plan First:** Use `plan-execution` to explore, clarify, and create or update `PLAN.md` as the single source of truth for scope, assumptions, phased tasks, and acceptance checks.
-  - **Execute Second:** Use `agent-coder` to implement against `PLAN.md`, execute the next open phase, and update progress in the same `PLAN.md` file. Do not create separate `task.md` or `implementation_plan.md` files.
-  - **Review Third:** Use `code-review` to verify the implementation against `PLAN.md`, run the relevant checks, and decide whether the work is approved, should go back to `agent-coder` for fixes, or should return to `plan-execution` for plan updates.
-  - **Cycle Rule:** Treat these three skills as a loop: `plan-execution -> agent-coder -> code-review ->` back to planning or execution if needed, with `PLAN.md` remaining the shared artifact throughout.
-- **Coding Principles Skill:** Use the local `coding-principles` skill for architecture, module slicing, Dependency Injection (DI/Ports & Adapters), testing strategy, and project structural decisions during planning, implementation, and review. The detailed reference is mirrored locally from the upstream rules file.
+- **User Problem First:** Always identify and understand the user's actual problem, goal, and constraints before deciding whether any skill is relevant.
+- **Independent Workflow Skills:** Treat `plan-execution`, `agent-coder`, and `code-review` as independent skills, not as a required sequence. Do not invoke them by default; use them only when the user explicitly requests them or clearly asks for that style of help.
+- **Workflow Skill Mapping:** Use `plan-execution` for structured planning and for creating or updating `PLAN.md` as the single source of truth. Use `agent-coder` for implementation against `PLAN.md` and to update progress there. Use `code-review` for review against `PLAN.md`, including relevant checks and an approval or follow-up outcome.
+- **Coding Principles for Implementation:** Treat the local `coding-principles` skill as guidance that supports `agent-coder`, especially for architecture, module slicing, Dependency Injection (DI/Ports & Adapters), testing strategy, and project structural decisions.
 - **Python Formatting Skill:** Use the local `format-python-code` skill whenever writing, modifying, or refactoring Python code. You **MUST** run this formatting and linting workflow before delivering code or preparing a commit.
 - **Commit Message Skill:** Use the local `generate-commit-msg` skill when code modifications are finalized and ready to be committed. Commit messages **MUST** follow this workflow and the Conventional Commits standard.
 
