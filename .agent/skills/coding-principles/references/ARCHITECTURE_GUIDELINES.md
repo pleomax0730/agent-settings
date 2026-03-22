@@ -1,235 +1,334 @@
 ---
 trigger: always_on
-description: Best practices when building project
+description: General-purpose engineering and architecture guidance for product codebases
 ---
 
-# Engineering Rules
+# Engineering Guidelines
 
-## 0. Goals
+## 0. Purpose
 
-- Localize changes: modifying one feature should not ripple across the system.
-- Core logic is covered by fast, I/O-free unit tests.
-- External dependencies (DB / HTTP / filesystem / queues / AI) are swappable without polluting core logic.
-- Clear boundaries for multi-person collaboration: fewer conflicts, lower merge cost.
+This document is a **general-purpose architecture guide**, not a rigid template.
 
-## 1. Architecture Principles
+Its goal is to help teams build systems that are:
 
-### 1.1 Vertical Slice Architecture (VSA)
+- easy to understand
+- easy to change safely
+- easy to test
+- resilient to external dependency churn
+- practical for multi-person collaboration
 
-Organize code by **feature / use case**, not by technical layer.
+Use these rules as **decision support**, not as folder-name dogma.
 
-- MUST: A slice contains at minimum: boundary (API/route), core logic (service), data contracts (schemas), and tests.
-- MUST: A slice only exposes its public entry point (e.g. router). Everything else is internal.
-- SHOULD: Avoid cross-slice imports of internal modules. Use shared utilities or explicit ports when sharing is needed.
-- SHOULD: Let internal layering within a slice grow organically. Don't force multi-layer splits upfront.
-- SHOULD: Within a project, use consistent naming for slice internals. Exact names are not prescribed.
+## 1. Rule Levels
 
-### 1.2 Dependency Inversion (Ports & Adapters) + Constructor DI
+Not every rule in this document has the same weight.
 
-Core concept: **core logic depends on interfaces (ports); infrastructure provides implementations (adapters); the composition root wires them together.**
+### 1.1 Universal Principles
 
-- MUST: External I/O (DB, HTTP clients, clock, UUID, AI clients, filesystem…) must be injected via constructor.
-- MUST: Define ports using language-idiomatic interfaces (e.g. `typing.Protocol` in Python, `interface` in Go/TS). Services depend only on ports.
-- MUST NOT: Create ports for pure logic that has no I/O, no non-determinism, and only one implementation. Import these directly.
+These are close to language- and framework-independent:
 
-### 1.3 SRP & YAGNI
+- Separate core decision-making from side effects.
+- Keep dependency direction clear.
+- Prefer local reasoning over global coupling.
+- Optimize for maintainability and safe change, not visual neatness alone.
+- Introduce abstractions only when they solve a current problem.
 
-- MUST: One module/class has one business reason to change.
-- MUST: Do not create abstractions for hypothetical future needs (e.g. "we might switch DB someday").
-- DO: Introduce abstractions when they make **current** tests faster/more reliable, or when you have 2+ concrete implementations now.
+### 1.2 Strong Defaults
 
-### 1.4 Thin Composition Root
+These are good defaults for many service and product codebases:
 
-The application entry point (e.g. `main.py`, `index.ts`, `cmd/server/main.go`) is only responsible for wiring:
+- Prefer organizing code by feature, use case, or capability.
+- Isolate external systems behind explicit boundaries when that improves testing and changeability.
+- Keep app startup and wiring code thin.
+- Prefer fast unit tests for important logic and fewer, targeted integration tests for real wiring.
 
-- Create app / server instance
-- Configure middleware
-- Register routes / routers
-- Assemble dependencies (DI providers)
-- MUST NOT: Place endpoint implementations or business logic in the entry point.
+### 1.3 Change Scope and Simplicity
 
-## 2. Glossary
+Prefer the smallest change that directly solves the current problem.
 
-- **Slice**: The smallest self-contained unit of a feature (API + schemas + service + tests).
-- **Port**: An interface / protocol describing a capability that core logic requires.
-- **Adapter**: A concrete implementation of a port (e.g. DB repository, HTTP client, AI client).
-- **Infra**: Adapters that wrap external dependencies and I/O (DB / HTTP / filesystem / queues / third-party SDKs). Code here imports third-party packages.
-- **Shared**: Cross-slice **pure** utilities, types, and constants that depend only on stdlib. No third-party imports. Extraction has a threshold (see Section 7).
+- Do not add abstractions, configurability, validation, or fallbacks for hypothetical needs.
+- Keep fixes and features narrowly scoped; avoid unrelated refactors or cleanup.
+- Prefer simple local code over one-off helpers or premature reuse.
+- Trust internal invariants and framework guarantees; validate at real system boundaries.
 
-## 3. Reference Directory Layout
+### 1.4 Project Conventions
 
-The structure below is conceptual.
-Exact directory names may vary by language or framework; what matters is **dependency direction and boundary enforcement**.
-
-### 3.1 Single-Service Repository
-
-```text
-src/
-  app/                 # composition root: wiring, server bootstrap
-  features/
-    <slice>/
-      api.*            # routing / controllers
-      schemas.*        # boundary DTOs
-      service.*        # use case orchestration
-      ports.*          # interfaces (only if the slice has external I/O)
-      engine/          # pure logic subfolder (only when service grows large)
-      tests/
-  infra/               # Group adapters by technology or purpose.
-    db/
-    http/
-    ai/                # e.g. OpenAI, Anthropic, Local LLM
-    vision/            # e.g. OpenCV, YOLO, OCR
-    payment/           # e.g. Stripe, PayPal
-  shared/
-    errors.*
-    logging.*
-    settings.*
-  tests/               # higher-level integration / e2e tests
-  scripts/
-```
-
-Not every slice needs `ports.*` or `engine/`. A simple slice may only have `api.*`, `service.*`, `schemas.*`, and `tests/`.
-
-### 3.2 Monorepo (Multiple Services)
-
-```text
-apps/
-  api/
-    src/...
-  worker/
-    src/...
-packages/
-  shared/              # cross-app shared (stricter extraction threshold)
-```
-
-## 4. Slice Boundaries & Dependency Rules
-
-### 4.1 Dependency Direction (inside -> outside)
-
-These are conceptual layers, not folder names. They map onto the directory structure like this: pure logic lives inside a slice's `engine/` or `service.*`; API lives in `api.*`; adapters live in `infra/`.
-
-- pure logic -> depends only on stdlib and type definitions
-- service -> depends on pure logic + ports + plain data structures
-- API layer -> depends on schemas + service
-- adapters -> depends on external packages and concrete I/O
-
-### 4.2 Forbidden Dependencies
-
-- MUST NOT: domain/application layer directly imports web frameworks, ORMs, HTTP clients, file/image parsers, or third-party SDKs.
-- MUST: All of the above must be wrapped in adapters and injected via ports.
-
-### 4.3 Shared vs Infra Boundary
-
-The deciding factor is **whether the code imports third-party packages**:
-
-- Imports third-party packages (e.g. ORM, HTTP lib, image lib, AI SDK) -> `infra/`
-- Pure stdlib only (types, constants, error classes, pure functions) -> `shared/`
-
-### 4.4 Cross-Slice Rules
-
-- MUST: A slice cannot import another slice's internals.
-- SHOULD: If slice A needs a capability owned by slice B (e.g. calling B's business logic), define a port in A rather than importing B's service directly.
-- SHOULD: Only extract into `shared/` when the code is a stable, pure utility (see Section 7 for threshold).
-
-## 5. DI Guidelines
-
-### 5.1 When to Create a Port
-
-Create a port ONLY when the dependency falls into one of these categories:
-
-- I/O: DB, HTTP, queues, filesystem
-- Non-determinism: clock, UUID, random
-- Heavy or expensive: AI/LLM clients, CV engines
-
-If the dependency is **none of the above** (e.g. a pure helper class, a data transformer, a validation function), do NOT create a port.
-Import it directly.
-
-### 5.2 Where to Place Ports vs Adapters
-
-- Port: inside the slice (`features/<slice>/ports.*`)
-- Adapter: inside infra (`infra/*`)
-- Wiring: inside the composition root (`app/*`)
-
-### 5.3 Exceptions (Avoid Over-Engineering)
-
-- MAY: Pure helpers (stateless functions) within a slice can be imported directly.
-- MAY: Small internal-only components that are trivially replaceable can skip port extraction initially. Extract once you need I/O-free unit testing or a second implementation appears.
-- A simple slice with no external I/O does not need `ports.*` at all.
-
-## 6. Testing Strategy
-
-### 6.1 TDD Workflow (Recommended)
-
-- RED: Write a failing test that describes the expected behavior.
-- GREEN: Make the minimal change to pass it.
-- REFACTOR: Remove duplication, improve naming, extract pure logic.
-
-### 6.2 Unit Tests (Must Be I/O-Free)
-
-- MUST: No DB connections, no HTTP calls, no real filesystem reads.
-- MUST: For services that depend on ports, inject fake/mock implementations.
-- SHOULD: Cover service and engine (pure logic) decision and transformation logic.
-
-### 6.3 Integration Tests (Minimal but Necessary)
-
-- SHOULD: At least 1 integration test per slice to verify wiring, routing, and contracts.
-- MUST: CI must be able to reliably start dependencies (e.g. test DB / container) or explicitly use mocks.
-
-### 6.4 Contract / E2E (As Needed)
-
-- MAY: Use contract tests for external service boundaries.
-- MAY: Write a small number of E2E tests for critical user journeys.
-
-## 7. Shared Extraction Threshold
-
-- DO: Allow reasonable duplication between slices (duplication is usually cheaper than wrong abstractions).
-- ONLY extract into shared when ALL of the following are true:
-  - 2+ slices (or 2+ apps) genuinely need it
-  - The contract is stable
-  - Extraction actually reduces coupling (not just "looks cleaner")
-
-## 8. Collaboration Rules
-
-- MUST: Keep PRs small and reviewable. Include Why / What / How to test.
-- SHOULD: Scope changes to a single slice.
-Avoid PRs that touch 3+ slices simultaneously.
-- SHOULD: When adding or changing architectural rules or dependency directions, add tests or a brief ADR (Architecture Decision Record).
-
-## 9. Git Workflow
-
-### 9.1 Branch Naming
-
-- `feat/<name>`
-- `fix/<name>`
-- `chore/<name>` / `refactor/<name>`
-
-### 9.2 Conventional Commits
-
-Format: `<type>(<scope>): <subject>`
-
-- type: feat | fix | chore | refactor | test | docs
-- scope: feature name (e.g. `chat`, `billing`, `analyze`)
+Folder names, exact slice shapes, and DI style are conventions. They should serve the principles above, not replace them.
 
 Examples:
 
-- `feat(chat): add streaming response support`
-- `refactor(core): inject clock port for deterministic tests`
+- `features/`, `infra/`, `shared/`
+- `skills/`, `workflows/`, `agents/`, `jobs/`, `pipelines/`
+- constructor injection, factory wiring, function-parameter injection
 
-## 10. Legacy & Incremental Migration
+## 2. Core Model
 
-Early-stage projects won't be fully compliant from day one. Legacy is acceptable as long as there are migration rules.
+Think in terms of **responsibility** first.
 
-- MUST: New features must not extend legacy patterns (e.g. don't add new endpoints to the entry point).
-- SHOULD: Apply the Boy Scout Rule—leave it better than you found it.
+- **Capability / use-case code**: Represents what the system does.
+- **Core logic**: Pure rules, transformations, decisions, validation, orchestration-friendly helpers.
+- **Application orchestration**: Coordinates use cases, invokes ports, sequences work.
+- **Infrastructure**: Talks to external systems or wraps non-deterministic / heavyweight dependencies.
+- **Shared**: Stable, pure utilities reused across multiple areas.
 
-### 10.1 When to Trigger Migration
+Classification should be based on a module's **primary responsibility**, not on whether it eventually calls another layer.
 
-- A second endpoint or use case appears in the same entry file.
-- Logic starts requiring mocks (AI/DB/HTTP) to be testable.
-- PRs begin frequently conflicting on the same file.
+## 3. Placement Rules
 
-### 10.2 Migration Approach (Strangler Fig)
+### 3.1 Infra
 
-1. Move routes into a feature slice (no behavior change).
-2. Extract core logic into service and engine modules (add unit tests).
-3. Extract I/O into ports/adapters (add integration tests).
+`infra` is for code whose main job is integration with the outside world.
+
+Common examples:
+
+- database repositories
+- HTTP clients
+- filesystem access
+- queues and messaging
+- cache adapters
+- cloud SDK wrappers
+- AI / LLM / OCR / CV providers
+- clock / UUID / randomness providers when isolated behind explicit boundaries
+
+Signals that code likely belongs in `infra`:
+
+- performs I/O
+- depends on non-deterministic runtime behavior
+- wraps a third-party SDK or heavyweight library
+- exists mainly to translate between your system and an external system
+
+Important:
+
+- Third-party imports are a strong signal for `infra`, but not the sole definition.
+- Stdlib-only code can still be `infra` if it performs I/O or runtime integration.
+
+### 3.2 Shared
+
+`shared` is for stable, low-level, pure reuse.
+
+Typical contents:
+
+- pure helpers
+- stable cross-cutting types
+- constants
+- error types
+- small utility functions
+
+`shared` should stay boring. If something is complex, unstable, or strongly owned by one capability, keep it local instead.
+
+### 3.3 Capability Layers
+
+Projects may define first-class capability modules when they reflect real concepts in the problem space.
+
+Examples:
+
+- `features/`
+- `skills/`
+- `workflows/`
+- `agents/`
+- `jobs/`
+- `pipelines/`
+
+These are valid top-level modules when they represent **what the system does**, even if they depend on infra underneath.
+
+Do not force these modules into `infra` just because they eventually call adapters.
+
+## 4. Dependency Direction
+
+Prefer this conceptual direction:
+
+- pure logic depends on language/runtime basics and plain data
+- application/use-case orchestration depends on pure logic and explicit boundaries
+- API/UI/boundary code depends on application/use-case orchestration
+- infra depends on external packages and concrete runtime integrations
+
+The exact folders do not matter as much as this rule:
+
+- business or application logic should not directly depend on framework-heavy or integration-heavy details unless there is a deliberate, low-cost reason
+
+## 5. Preferred Organization
+
+### 5.1 Default for Product and Service Codebases
+
+Prefer organizing code by feature, use case, or capability rather than by technical layer alone.
+
+Why:
+
+- better change locality
+- clearer ownership
+- fewer cross-team merge conflicts
+- easier reasoning about user-facing behavior
+
+### 5.2 Example Shapes
+
+These are examples, not laws:
+
+```text
+src/
+  app/                 # startup, wiring, registration
+  features/
+    <slice>/
+      api.*
+      schemas.*
+      service.*
+      ports.*
+      engine/
+      tests/
+  infra/
+    db/
+    http/
+    ai/
+  shared/
+  tests/
+```
+
+```text
+src/
+  agents/
+  skills/
+  workflows/
+  infra/
+  shared/
+  app/
+```
+
+What matters is whether the structure preserves:
+
+- clear ownership
+- low coupling
+- understandable boundaries
+- safe dependency direction
+
+## 6. Ports and Adapters
+
+Use ports/adapters when they help isolate external concerns.
+
+Create an explicit boundary when a dependency is:
+
+- I/O-related
+- non-deterministic
+- expensive or heavyweight
+- unstable enough that isolating it improves tests or change safety
+
+Examples:
+
+- DB access
+- HTTP clients
+- message brokers
+- file storage
+- AI/LLM providers
+- time, UUIDs, randomness
+
+Do not create ports for:
+
+- pure logic
+- stateless transformations
+- simple validation helpers
+- code with only one obvious implementation and no testing or ownership pressure
+
+### 6.1 DI Guidance
+
+The goal is not “constructor injection everywhere.”
+The goal is that external dependencies are supplied at the system edge and replaceable in tests.
+
+Valid approaches include:
+
+- constructor injection
+- function parameters
+- thin factories/providers
+- composition-root assembly
+
+Choose the lightest option that keeps boundaries clear.
+
+## 7. Composition Root
+
+Keep startup code thin.
+
+Typical responsibilities:
+
+- create app/server/process entrypoint
+- configure middleware
+- register routes / handlers / jobs
+- assemble dependencies
+- choose concrete adapters
+
+Avoid putting business logic, endpoint logic, or multi-step workflows directly in the entrypoint.
+
+## 8. Testing Strategy
+
+### 8.1 Universal Testing Guidance
+
+- Test important behavior, not just structure.
+- Prefer fast tests for logic-heavy code.
+- Test real wiring where integration bugs are likely.
+- Keep most tests deterministic.
+
+### 8.2 Good Defaults
+
+- unit tests for pure logic and application decisions
+- fake or mock boundaries for external systems
+- integration tests for boundary wiring and adapter contracts
+- a small number of end-to-end or contract tests for critical paths
+
+### 8.3 Avoid
+
+- requiring real DB/HTTP/filesystem/AI in ordinary unit tests
+- over-indexing on integration tests for logic that could be tested in-process
+
+## 9. Shared Extraction Threshold
+
+Do not extract into `shared` just because two files look similar.
+
+Extract only when most of the following are true:
+
+- multiple areas genuinely need it
+- the concept is stable
+- extraction reduces coupling
+- the abstraction makes code easier, not merely “cleaner”
+
+Local duplication is often cheaper than a premature global abstraction.
+
+## 10. Collaboration and Scope
+
+Prefer changes that are:
+
+- small
+- reviewable
+- locally understandable
+- scoped to one capability or slice where practical
+
+When a change alters dependency direction, ownership boundaries, or top-level structure, document the reason briefly in the PR or an ADR.
+
+## 11. Context-Specific Exceptions
+
+Different codebases have different optimal structure.
+
+### 11.1 Simpler Is Better For
+
+- scripts
+- one-off internal tools
+- prototypes
+- experiments
+
+In these cases, avoid architecture ceremony unless the code is growing.
+
+### 11.2 Different Priorities May Apply For
+
+- research / ML experimentation code
+- frontend-heavy UI systems
+- data pipelines
+- embedded / systems programming
+
+The principles still apply, but the preferred module shape may differ.
+
+## 12. Decision Checklist
+
+Before adding a module or abstraction, ask:
+
+1. What is this module's primary responsibility?
+2. Is it expressing what the system does, or how it integrates with something external?
+3. Does this boundary improve testing, replaceability, or ownership clarity today?
+4. Am I introducing a reusable abstraction too early?
+5. Will this make future changes more local or more scattered?
+
+If the answers are unclear, prefer the simpler design and keep the code closer to where it is used.
