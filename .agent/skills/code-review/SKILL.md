@@ -1,28 +1,30 @@
 ---
 name: code-review
-description: Review and verify code changes against PLAN.md after execution. Use when implementation is complete enough for formal verification, diff review, and acceptance checks before closing the loop or sending work back for fixes.
+description: Review and verify completed code changes against the agreed scope, expected behavior, and acceptance criteria. Use when implementation is ready for formal verification, diff review, and targeted checks before acceptance or follow-up fixes.
 ---
 
 # Code Review
 
-Follow this skill when the user explicitly invokes `$code-review` or when work produced from `PLAN.md` needs formal review and verification.
+Follow this skill when the user explicitly invokes `$code-review` or when implementation is complete enough to review for correctness, regressions, and acceptance readiness.
 
 ## Core Contract
 
-Treat this skill as the quality gate in a three-skill cycle:
-- `plan-execution` writes and updates `PLAN.md`,
-- `agent-coder` implements against `PLAN.md`,
-- `code-review` verifies whether the changes satisfy `PLAN.md` and are safe to accept.
+This skill is the quality gate for completed code changes.
 
-This skill does not own feature planning and should not invent new scope. It may request fixes, identify plan gaps, or recommend returning to planning when the implementation reveals missing decisions.
+- Verify that the implementation matches the agreed scope.
+- Prefer concrete findings over general commentary.
+- Focus on user-visible correctness, regression risk, and verification evidence.
+- Do not invent new feature scope during review.
+
+If a `PLAN.md` exists, use it as the primary source of expected behavior and acceptance criteria. If no plan exists, derive expectations from the user request, task context, and the touched code.
 
 ## Workflow
 
-### 1. Re-anchor on the plan
+### 1. Re-anchor on the expected outcome
 
-- Read `PLAN.md` first.
-- Identify which phases or acceptance criteria were meant to be completed.
-- Check whether assumptions, interfaces, and test expectations in `PLAN.md` match what was actually implemented.
+- Read `PLAN.md` first when present.
+- Identify the intended behavior, constraints, and acceptance criteria.
+- Check whether assumptions, interfaces, and test expectations match what was actually implemented.
 
 ### 2. Inspect the implementation
 
@@ -40,11 +42,11 @@ This skill does not own feature planning and should not invent new scope. It may
     - `wc -c /tmp/review_gpt54_high.txt`
   - only read or summarize the `/tmp` file after the command is fully completed.
 
-### 4. Decide the next hop
+### 4. Decide the outcome
 
-- If the code is correct and aligned with `PLAN.md`, approve it and say the cycle can continue or close.
-- If the code is fixable without changing the plan, send it back to `agent-coder` with the concrete issues.
-- If the implementation exposed missing decisions, contradictions, or scope changes, send it back to `plan-execution` and explain what must be clarified in `PLAN.md`.
+- If the code is correct and aligned with the expected outcome, approve it and note any residual risk.
+- If the code is fixable without changing scope, report the concrete issues and expected follow-up.
+- If the implementation exposes missing decisions, contradictions, or unclear scope, call that out explicitly and explain what must be clarified before approval.
 
 ## Review Output
 
@@ -60,7 +62,7 @@ If there are no findings, say so explicitly and mention any residual risk or che
 
 ## Guardrails
 
-- Do not treat successful test runs as sufficient if the implementation still misses the plan.
-- Do not rewrite `PLAN.md` unless the user explicitly asks you to update the plan; recommend a return to `plan-execution` instead.
+- Do not treat successful test runs as sufficient if the implementation still misses the expected behavior.
+- Do not rewrite `PLAN.md` unless the user explicitly asks for it.
 - Do not bury the key findings under a long summary.
 - Do not approve work that still depends on unstated assumptions.
