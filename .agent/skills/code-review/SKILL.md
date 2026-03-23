@@ -36,11 +36,8 @@ If a `PLAN.md` exists, use it as the primary source of expected behavior and acc
 
 - Run the most relevant formatters, linters, tests, or smoke checks for the changed area.
 - Prefer targeted verification first, then broader checks when risk justifies it.
-- If using Codex review output, persist it to `/tmp` reliably:
-  - `codex review --uncommitted -c model="gpt-5.4" -c model_reasoning_effort="high" 2>&1 | tee /tmp/review_gpt54_high.txt`
-  - validate the file is non-empty before parsing:
-    - `wc -c /tmp/review_gpt54_high.txt`
-  - only read or summarize the `/tmp` file after the command is fully completed.
+- Prefer a fresh Codex review pass for formal review:
+  - `codex review --uncommitted -c model="gpt-5.4" -c model_reasoning_effort="medium"`
 
 ### 4. Decide the outcome
 
