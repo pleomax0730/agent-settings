@@ -1,49 +1,104 @@
 ---
 name: agent-coder
-description: Plan tasks as implementation_plan.md and use Codex to execute them while maintaining session context.
+description: Execute one decision-complete execution slice from PLAN.md, perform the minimum necessary validation, and update progress before handing off for review or the next slice.
 ---
 
 # Agent Coder Workflow
 
-This workflow delegates code writing to Codex while keeping the AI Assistant in the role of a planner and reviewer. This leverages Codex's editing capabilities while maintaining the same session context for efficiency and token caching.
+Use this skill when a decision-complete `PLAN.md` already exists and the user wants implementation rather than more planning.
 
-## Steps
+This skill owns the execution stage of a three-skill cycle:
+- `plan-execution` prepares and updates `PLAN.md`,
+- `agent-coder` implements the next open execution slice from `PLAN.md`,
+- `code-review` verifies the result and either approves it or sends it back for fixes or replanning.
 
-1. **Information Gathering**
-   - Review the requested feature or bug fix.
-   - **Actively Ask the User**: Ask the user to provide any relevant coding principle files (e.g., `AGENTS.md`), architectural diagrams, or specific constraints before proceeding. Do not assume any principles or guidelines without confirmation.
-   - Explore the codebase to understand the existing context.
+## Core Contract
 
-2. **Generate Implementation Plan & Task List**
-   - Create a `task.md` to track the overall progress.
-   - Create an `implementation_plan.md` containing clear, phase-by-phase steps with markdown checkboxes (`- [ ]`).
-   - Describe exactly which files to edit, what functions to create, and the logic to implement for each phase.
+Treat `PLAN.md` as the execution contract.
 
-3. **Execute Phase 1 with Codex**
-   - Trigger the initial execution run in the background using `run_command` (set a short `WaitMsBeforeAsync`). Ensure that the context gathered in Step 1 is explicitly provided to Codex:
-     `codex exec "Read the implementation_plan.md file. Fully execute Phase 1, making any necessary file edits. Update the plan to mark Phase 1 as [x] once complete. Ensure code complies with the following provided guidelines/files: [INSERT GATHERED FILES/RULES HERE]." --full-auto`
-   - Use `command_status` to monitor the command's background execution. 
-   - **Crucial:** From the initial output snapshot, note down the `session id:` (which is a UUID like `019c...`) so you can resume it later.
+Implement the next open execution slice without silently expanding scope.
 
-4. **Review and Verify**
-   - Once the background command completes, verify Codex's changes.
-   - Run necessary linters, tests (e.g., `uv run pytest`), or use `git status` / `git diff` to ensure correctness.
-   - Ensure the `implementation_plan.md` was correctly updated.
-   - If there are errors or failing tests, feed the error logs back into the next Codex prompt to fix them before proceeding to the next phase.
-   - **Persist review output to `/tmp` reliably**:
-     - Always use `tee` and capture both stdout/stderr (high reasoning only):
-       - `codex review --uncommitted -c model="gpt-5.4" -c model_reasoning_effort="high" 2>&1 | tee /tmp/review_gpt54_high.txt`
-     - Reason: in some PTY/tool wrappers, plain `>` can miss part (or all) of the output stream.
-     - Validate the file is non-empty before parsing:
-       - `wc -c /tmp/review_gpt54_high.txt`
-     - Only read/summarize the `/tmp` files after the command is fully completed.
+The default goal is to complete one clear execution slice, gather evidence that it works, update `PLAN.md`, and then either stop, continue to another coder-owned execution slice, or hand off to review.
 
-5. **Resume Codex for Subsequent Phases (Loop)**
-   - To continue with the next phase while maintaining the identical session, run the resume command using the Session ID you captured:
-     `codex exec resume <SESSION_ID> "Great. Proceed to execute the next open Phase in implementation_plan.md. Mark it as [x] once complete. Remember to adhere to the previously provided strict constraints." --full-auto`
-   - Use `command_status` to wait for completion.
-   - Repeat the "Review and Verify" step.
-   - Continue this loop until all items in `implementation_plan.md` are finished.
+## Workflow
 
-6. **Finish**
-   - Report the completion of the task to the user.
+### 1. Re-anchor on the plan and repo context
+
+- Read `PLAN.md` first.
+- Confirm the next open execution slice is decision-complete enough to execute.
+- Read the relevant repo-local guidance such as `AGENTS.md`, `README.md`, and any linked docs.
+- Explore the touched code paths, existing conventions, and tests before editing.
+
+Do not ask the user to re-send repo files that are already available locally.
+
+### 2. Use `PLAN.md` as the source of truth
+
+- Do not create alternate planning files when `PLAN.md` is present.
+- Treat `PLAN.md` as the single source of truth for scope, execution-slice boundaries, assumptions, and progress tracking.
+- If `PLAN.md` is missing or materially ambiguous, stop execution and hand the task back to `plan-execution` instead of inventing missing plan details.
+
+### 3. Execute the next bounded execution slice
+
+- Implement only the next open coder-owned execution slice from `PLAN.md`.
+- Keep changes narrow and aligned with the current slice.
+- When the plan references verification or evidence expectations that belong to execution, satisfy them as part of the slice.
+- If execution exposes a true spec gap, stop and route the task back to planning rather than making new product decisions in code.
+
+If the next open item is primarily:
+- a formal review checkpoint, hand off to `code-review`,
+- a planning or unresolved decision block, hand off to `plan-execution`,
+- a coder-owned test or validation task tied to the implementation, treat it as part of the current execution slice when appropriate.
+
+### 4. Run lightweight execution checks
+
+Before declaring the execution slice complete:
+- confirm the intended files changed,
+- run the required formatter or lint workflow for touched languages,
+- run the most relevant targeted tests or smoke checks when practical,
+- confirm the implemented behavior matches the current slice goals,
+- capture concise evidence that the slice is working.
+
+Examples of evidence:
+- targeted test results,
+- smoke command outputs,
+- API responses,
+- manual verification notes for UI behavior,
+- config or migration outcomes when relevant.
+
+Do not treat this as the formal review stage. Use `code-review` for deeper verification and final review output.
+
+### 5. Update `PLAN.md`
+
+When the slice is complete:
+- mark the completed slice items in `PLAN.md`,
+- update any execution notes that the next slice depends on,
+- keep the plan aligned with what actually landed,
+- avoid rewriting unrelated plan sections.
+
+### 6. Decide the handoff
+
+- By default, stop after one completed execution slice unless there is a clear reason to continue.
+- Continue only if the next open item is still a coder-owned execution slice, remains decision-complete, and does not belong to formal review.
+- If the implementation is complete enough for formal verification, hand off to `code-review`.
+- If review or execution reveals plan gaps or contradictions, return to `plan-execution`.
+
+Report execution completion separately from review approval.
+
+## Guardrails
+
+- Do not silently expand scope beyond what `PLAN.md` says.
+- Do not perform deep review work that belongs in `code-review`.
+- Do not keep executing if the next open item is ambiguous enough that new decisions would be required.
+- Do not treat formal review checkpoints as coder work.
+- Do not skip required formatting or targeted validation for touched code.
+- Do not mark a phase complete if the expected evidence has not been gathered.
+
+## Response Style
+
+Be concise and execution-focused.
+
+During implementation:
+- state which execution slice is being executed,
+- note the key files or systems being touched,
+- report targeted validation performed,
+- update the plan before moving on or handing off.
