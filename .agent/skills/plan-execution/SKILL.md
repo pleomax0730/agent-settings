@@ -1,6 +1,6 @@
 ---
 name: plan-execution
-description: Plan-first execution workflow for tasks that need deliberate discovery, iterative clarification, and a decision-complete implementation plan written to PLAN.md before coding. Use when the user wants planning discipline similar to Plan Mode, wants you to ask clarifying questions in a loop until they accept the plan, wants explicit progress/checklist management with update_plan when available, or wants to separate planning from implementation without relying on hidden system modes.
+description: Plan-first workflow for tasks that need deliberate discovery, decomposition, and a decision-complete PLAN.md before coding starts. Use when the user wants structured planning, explicit assumptions, and implementation-ready phases rather than immediate code changes.
 ---
 
 # Plan Execution
@@ -17,8 +17,8 @@ Aim for a decision-complete plan that another engineer or agent could implement 
 
 This skill owns the planning stage of a three-skill cycle:
 - `plan-execution` discovers and writes `PLAN.md`,
-- `agent-coder` executes the next checked-off plan slice from `PLAN.md`,
-- `code-review` verifies the changes and either approves completion or sends the work back for plan or code updates.
+- `agent-coder` executes the next open execution slice from `PLAN.md`,
+- `code-review` verifies the resulting changes and either approves completion or sends the work back for fixes or replanning.
 
 ## Workflow
 
@@ -27,7 +27,7 @@ This skill owns the planning stage of a three-skill cycle:
 Explore before asking questions.
 
 Use non-mutating inspection to resolve discoverable facts:
-- read likely entrypoints, configs, schemas, manifests, and docs,
+- read likely entrypoints, configs, schemas, manifests, and repo-local docs,
 - search the codebase for relevant symbols and flows,
 - inspect existing tests and conventions,
 - run non-mutating checks when they improve confidence.
@@ -57,23 +57,43 @@ Ask focused follow-up questions that:
 
 Prefer one to three short questions at a time.
 
-If a tool such as `request_user_input` is available and appropriate, prefer it for meaningful multiple-choice decisions. Otherwise ask directly in normal chat.
-
 Repeat this loop:
 1. explore,
 2. summarize what is now known,
 3. ask the next high-impact question,
-4. update the plan/checklist.
+4. update the plan checklist.
 
 Continue until the user explicitly accepts the plan direction and no decision that matters is left open.
 
-### 4. Plan instead of execute
+### 4. Decompose the work into execution blocks
+
+Break larger goals into smaller building blocks that can be handed to execution cleanly.
+
+The final plan should separate work by the blocks that matter for delivery, such as:
+- design or decision updates,
+- execution slices,
+- review checkpoints,
+- test or validation tasks,
+- rollout or evidence capture when relevant.
+
+For each execution phase, make clear:
+- what is in scope,
+- what must already be true before execution starts,
+- what output or repo-visible artifact is expected,
+- how completion will be verified.
+
+Use labels and wording that make ownership obvious:
+- execution slices are meant for `agent-coder`,
+- formal review checkpoints are meant for `code-review`,
+- planning or unresolved decision blocks stay with `plan-execution`.
+
+### 5. Plan instead of execute
 
 While this skill is active, interpret requests to "implement", "do it", or "go ahead" as requests to refine the implementation plan unless the user clearly says to exit planning and begin execution.
 
 If the user changes scope mid-stream, update the plan and continue the clarification loop.
 
-### 5. Finalize with a complete plan
+### 6. Finalize with a complete plan
 
 When the spec is decision complete, create or update a `PLAN.md` file with the final plan.
 
@@ -81,10 +101,17 @@ The `PLAN.md` content must include:
 - a clear title,
 - a short summary,
 - progress checkboxes for phased execution,
-- key implementation changes grouped by behavior or subsystem,
+- key implementation changes grouped by behavior, subsystem, or execution block,
 - public API or interface changes when relevant,
 - test cases and acceptance scenarios,
-- explicit assumptions and defaults chosen.
+- explicit assumptions and defaults chosen,
+- verification notes for each major phase.
+
+When possible, label each checkbox or phase so the intended owner is obvious, for example:
+- `[coder] Implement request validation`
+- `[coder] Add targeted regression test`
+- `[review] Verify diff and acceptance criteria`
+- `[plan] Resolve rollout decision`
 
 Keep the final plan concise but implementation-ready.
 
@@ -103,6 +130,8 @@ Do not produce or write a final plan while material ambiguity remains.
 
 Do not execute mutating work until the user explicitly tells you to stop planning and switch to execution.
 
+Do not leave phase boundaries vague enough that the coder must re-decide scope during implementation.
+
 ## Response Style
 
 Be collaborative and direct.
@@ -112,6 +141,7 @@ During planning:
 - summarize discovered facts before asking questions,
 - surface tradeoffs clearly,
 - make reasonable default recommendations,
-- record assumptions explicitly.
+- record assumptions explicitly,
+- emphasize the phase breakdown and acceptance path.
 
 When the user accepts the plan, write the final answer into `PLAN.md`, then return a brief confirmation and stop there.
